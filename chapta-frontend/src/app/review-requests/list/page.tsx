@@ -1,38 +1,22 @@
-'use client';
+import Link from 'next/link';
 
-import { useEffect, useState } from 'react';
+// サーバーサイドでデータ取得
+async function fetchReviewRequests() {
+  const res = await fetch('http://localhost:8080/review-requests', {
+    cache: 'no-store', // 開発中は常に最新を取得
+  });
 
-type ReviewRequest = {
-  title: string;
-  body: string;
-  genre: string;
-};
+  if (!res.ok) {
+    throw new Error('レビュー依頼の取得に失敗しました');
+  }
 
-export default function ReviewRequestList() {
-  const [reviewRequests, setReviewRequests] = useState<ReviewRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const data = await res.json();
+  return data || []; // null 対策
+}
 
-  useEffect(() => {
-    const fetchReviewRequests = async () => {
-      try {
-        const res = await fetch('http://localhost:8080/review-requests');
-        if (!res.ok) throw new Error('データ取得失敗');
-        const data = await res.json();
-        // null 対策として fallback をつける
-        setReviewRequests(data || []);
-      } catch (err: any) {
-        setError(err.message ?? '不明なエラー');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReviewRequests();
-  }, []);
-
-  if (loading) return <p className="p-4">読み込み中...</p>;
-  if (error) return <p className="p-4 text-red-500">エラー: {error}</p>;
+// サーバーコンポーネント
+export default async function ReviewRequestList() {
+  const reviewRequests = await fetchReviewRequests();
 
   return (
     <main className="max-w-3xl mx-auto mt-10 p-4">
@@ -41,11 +25,17 @@ export default function ReviewRequestList() {
         <p>レビュー依頼はまだ登録されていません。</p>
       ) : (
         <ul className="space-y-4">
-          {reviewRequests.map((req, index) => (
+          {reviewRequests.map((req: any, index: number) => (
             <li key={index} className="border p-4 rounded shadow">
               <h2 className="text-xl font-semibold">{req.title}</h2>
               <p className="text-gray-600 mb-2">ジャンル: {req.genre}</p>
-              <p>{req.body}</p>
+              <p className="mb-2">{req.body}</p>
+              <Link
+                href={`/review-requests/${index}`}
+                className="text-blue-600 hover:underline inline-block mt-2"
+              >
+                詳細を見る
+              </Link>
             </li>
           ))}
         </ul>
